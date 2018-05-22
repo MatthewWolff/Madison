@@ -15,16 +15,14 @@
 
 int history_num = 1;
 
-void input_prompt()
-{
+void input_prompt() {
 	char prompt[30];
 	sprintf(prompt, "mysh (%d)> ", history_num++);
 	write(STDOUT_FILENO, prompt, strlen(prompt));
 	fflush(stdout);
 }
 
-void print_error()
-{
+void print_error() {
 	char error_message[30] = "An error has occurred\n";
 	write(STDERR_FILENO, error_message, strlen(error_message));
 	fflush(stderr);
@@ -33,27 +31,21 @@ void print_error()
 /**
  * retrieve input from stdin for dissection.
  */
-char* get_input()
-{
+char* get_input() {
 	char *str;
 	str = malloc(sizeof(void)); //size is start size
-	if(str == NULL)
-	{
+	if(str == NULL) {
 		return NULL;
 	}
 
 	int input_size = 1; // initial
 	int character, size = 0;
-	while(!(EOF == (character = fgetc(stdin)) || character == '\n'))
-	{
+	while(!(EOF == (character = fgetc(stdin)) || character == '\n')) {
 		str[size++] = character;
-		if(size==input_size)
-		{
+		if(size==input_size) {
 			str = realloc(str, sizeof(void)*(++input_size));
-			if(str == NULL)
-			{
+			if(str == NULL) 
 				return NULL;
-			}
 		}
 	}
 	str[size]='\0'; //set terminating char
@@ -65,12 +57,10 @@ char* get_input()
 /**
  * Dissect arguments and return count after putting words into array
  */
-int split_line(char* input, char* words[])
-{
+int split_line(char* input, char* words[]) {
 	int word_count = 0;
 	char *token = strtok(input, " \t"); // dual char
-	while(token != NULL)
-	{
+	while(token != NULL) {
 		words[word_count++] = strdup(token);
 		token = strtok(NULL, " \t");
 	}
@@ -86,31 +76,25 @@ int split_line(char* input, char* words[])
 /**
  * counts the number of words in a line without murdering it
  */
-int word_count(char* line)
-{
+int word_count(char* line) {
 	int token_counter = 0;
 	char *ptr = strdup(line);
 	ptr = strtok(ptr, " \t"); // dual char
-	while(ptr != NULL)
-	{
+	while(ptr != NULL) {
 		++token_counter;
 		++ptr;
 		ptr = strtok(ptr, " \t");
 	}
-
 	return ++token_counter;
 }
 
 /**
  * internal CD command
  */
-void run_cd(char* path[])
-{
-	if(path[1] == NULL)
-	{
+void run_cd(char* path[]) {
+	if(path[1] == NULL) {
 		chdir(getenv("HOME"));
-	} else if(-1 == chdir(path[1]))
-	{
+	} else if(-1 == chdir(path[1])) {
 		print_error();
 	}
 }
@@ -119,35 +103,28 @@ void run_cd(char* path[])
 /**
  * internal PWD command
  */
-void run_pwd(char* args[])
-{
-	if(args[1] == NULL) // no secondary args
-	{
+void run_pwd(char* args[]) {
+	if(args[1] == NULL) { // no secondary args
 		char path[1000];
 		getcwd(path, 1000);
 		printf("%s\n", path);
-	} else {
-		print_error();
-	}
+	} else print_error();
 }
 
 /**
  * gimme dat pipe
  * http://tldp.org/LDP/lpg/node11.html
  */
-void run_pipe(int* fd, char* command1[], char* command2[])
-{
+void run_pipe(int* fd, char* command1[], char* command2[]) {
 	int pipe1 = fork();
-	if(pipe1 == 0) // child
-	{
+	if(pipe1 == 0) { // child
 		dup2(fd[0], 0);
 		close(fd[1]);
 		execvp(command2[0], command2);
 		print_error();
 	} else {
 		int pipe2 = fork();
-		if(pipe2 == 0) // another child
-		{
+		if(pipe2 == 0) { // another child
 			dup2(fd[1], STDOUT_FILENO);
 			close(fd[0]);
 			execvp(command1[0], command1);
@@ -161,8 +138,7 @@ void run_pipe(int* fd, char* command1[], char* command2[])
 			waitpid(pipe1, &status, WUNTRACED);
 			waitpid(pipe2, &status, WUNTRACED);
 
-			while(!(WIFEXITED(status) || WIFSIGNALED(status)))
-			{
+			while(!(WIFEXITED(status) || WIFSIGNALED(status))) {
 				waitpid(pipe1, &status, WUNTRACED);
 				waitpid(pipe2, &status, WUNTRACED);
 			}
@@ -175,14 +151,12 @@ void run_pipe(int* fd, char* command1[], char* command2[])
 
 int main(int argc, char *argv[]) {
 
-	if(argc != 1)
-	{
+	if(argc != 1) {
 		print_error();
 		exit(1);
 	}
 
-	while(TRUE)
-	{
+	while(TRUE) {
 		input_prompt();
 		char *input = get_input(); // get dynamically sized input
 
@@ -197,8 +171,7 @@ int main(int argc, char *argv[]) {
 		char *words[count];
 		int num_words = split_line(input, words);
 
-		if(words[0] == NULL) //empty line
-		{
+		if(words[0] == NULL) { //empty line 
 			history_num--;
 			continue;
 		}
@@ -206,141 +179,106 @@ int main(int argc, char *argv[]) {
 		// check for piping and background commands
 		int is_pipeline = FALSE, pipe_index = 0;
 		int is_bg = FALSE, bg_index = 0;
-		while(words[pipe_index] != NULL)
-		{
-			if(strcmp(words[pipe_index], "|") == 0)
-			{
+		while(words[pipe_index] != NULL) {
+			if(strcmp(words[pipe_index], "|") == 0) {
 				is_pipeline = TRUE;
 				break;
 			}
-			else if(strcmp(words[bg_index], "&") == 0)
-			{
-				if(bg_index < (num_words-1))
-				{
+			else if(strcmp(words[bg_index], "&") == 0) {
+				if(bg_index < (num_words-1)) {
 					print_error();
 					continue;
 				}
 				is_bg = TRUE;
 				words[bg_index] = NULL; // remove from input
 				break;
-			}
-			else
-			{
+			} else {
 				++pipe_index;
 				++bg_index;
 			}
 		}
 
 		// exit command (ALL, not just child threads.)
-		if(!strcmp(words[0], "exit"))
-		{
+		if(!strcmp(words[0], "exit")) {
 			kill(0, SIGINT); // haha or just kill me instead
 		}
 
 		// forking
 		int process_id = fork();
-		if (process_id > 0)
-		{
-			if(!is_bg)
-			{
-				wait(NULL);
-			}
+		if (process_id > 0) {
+			if(!is_bg) wait(NULL);
 
-		} else if(process_id == 0)
-		{
+		} else if(process_id == 0) {
 			char* outfile="";
 			char* infile="";
 			int index_first_op = -1;
 			int is_redirection_error = FALSE;
 
-			if(strcmp(words[0], ">") == FALSE || strcmp(words[0], "<") == FALSE)
-			{
+			if(strcmp(words[0], ">") == FALSE || strcmp(words[0], "<") == FALSE) {
 				continue;
 			}
 
 			int index = 0;++index;
-			while(words[index])
-			{
+			while(words[index]) {
 				//output redirection
-				if(strcmp(words[index], ">") == 0)
-				{
-					if(words[index + 2] && strcmp(words[index+2], "<") && strcmp(words[index+2], "|"))
-					{
+				if(strcmp(words[index], ">") == 0) {
+					if(words[index + 2] && strcmp(words[index+2], "<") && strcmp(words[index+2], "|")) {
 						is_redirection_error = TRUE;
 						break;
 					} else {
 						outfile = strdup(words[index + 1]);
-						if(-1 == index_first_op)
-						{
+						if(-1 == index_first_op) {
 							index_first_op = index;
 						}
 					}
-				}
-				// input redirection
-				else if(strcmp(words[index], "<") == 0)
-				{
-					if(words[index + 2] && strcmp(words[index + 2], ">") && strcmp(words[index + 2], "|"))
-					{
+				} else if(strcmp(words[index], "<") == 0) { // input redirection
+					if(words[index + 2] && strcmp(words[index + 2], ">") && strcmp(words[index + 2], "|")) {
 						is_redirection_error = TRUE;
 						break;
 					} else {
-						if(access(words[index+1], F_OK) == -1)
-						{
+						if(access(words[index+1], F_OK) == -1) {
 							is_redirection_error = TRUE;
 							break;
 						}
 						infile = strdup(words[index+1]);
-						if(-1 == index_first_op)
-						{
-							index_first_op = index;
-						}
+						if(-1 == index_first_op) index_first_op = index;
 					}
 				}
 				++index;
 			}
 
-			if(is_redirection_error)
-			{
+			if(is_redirection_error) {
 				print_error();
 				continue;
-				printf(":("); //:(
 			}
 
 			int in, out;
-			if(index_first_op != -1)
-			{
+			if(index_first_op != -1) {
 				// execute redirecting
-				if(*outfile)
-				{
+				if(*outfile) {
 					close(STDOUT_FILENO);
 					out = open(outfile, O_CREAT | O_WRONLY | O_TRUNC, S_IRWXU/*user can {read, write, execute}*/);
 					dup2(out, STDOUT_FILENO);
 				}
-				if (*infile)
-				{
+				if (*infile) {
 					in = open(infile, O_RDONLY);
 					dup2(in, 0);
 				}
 				words[index_first_op] = NULL; //remove from command line
 			}
 
-			if(is_pipeline) // if command line is piped
-			{
+			if(is_pipeline) { // if command line is piped
 				//indices
 				char *first_command[pipe_index + 1];
 				char *second_command[num_words - pipe_index];
 
 				// not allowed if pipe is at beginning or end
-				if(!pipe_index && pipe_index != (num_words - 1))
-				{
+				if(!pipe_index && pipe_index != (num_words - 1)) {
 					int first = TRUE;
 					int i,index = 0;
-					for(i = 0; i < num_words; i++)
-					{
-						if(first)
-						{
-							if(i == pipe_index)
-							{
+					for(i = 0; i < num_words; i++) {
+						if(first) {
+							if(i == pipe_index) {
 								index = 0;
 								first = FALSE;
 								continue;
@@ -361,17 +299,14 @@ int main(int argc, char *argv[]) {
 					pipe(fd);
 					run_pipe(fd, first_command, second_command);
 
-				} else {
-					continue;
-				}
+				} else continue;
+				
 			} else {
 				//if not pipeline (regular or internal command)
-				if(strcmp(words[0], "cd") == 0)
-				{
+				if(strcmp(words[0], "cd") == 0) {
 					run_cd(words);
 				}
-				else if(strcmp(words[0], "pwd") == 0)
-				{
+				else if(strcmp(words[0], "pwd") == 0) {
 					run_pwd(words);
 				} else {
 					execvp(words[0], words);
